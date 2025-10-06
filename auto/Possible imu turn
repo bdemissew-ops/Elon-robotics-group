@@ -1,0 +1,28 @@
+protected void turnIMU(double degrees, double power){
+        robot.imu.resetYaw();
+        power = Math.abs(power);
+
+        if (degrees > 0){power = power * -1;}
+
+        robot.startMove(0,0,power);
+
+        double target1 = degrees;
+        double target2;
+
+        while(opModeIsActive()){ //Activate robot
+            if (Math.abs(target1) >= 180 ){ //Check if angle is greater than 180
+                target2 = target1 % 150; //Split into two movements
+                target1 = (double) (((int) target1)/ 150) * 150;
+                if (Math.abs(robot.getHeading()) > Math.abs(target1)){ // check first movement and reset yaw
+                    robot.imu.resetYaw();
+                    if (Math.abs(robot.getHeading()) > target2){ //check second movement
+                        break; // stop
+                    }
+                }
+            }
+            if (Math.abs(robot.getHeading())> Math.abs(target1) ){ //If not, check until heading is greater than target
+                break;
+            }
+        }
+        robot.startMove(0,0,0);
+    }
