@@ -1,0 +1,112 @@
+package edu.elon.robotics.auto;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+@Autonomous(name = "Line Follower", group = "ShadowWizardMoneyGangWithCastingSpells")
+
+public class LineFollower extends AutoCommon {
+    private final double   SLOW_SPEED = 0.15;
+    private final double MEDIUM_SPEED = 0.65;
+    private final double   FAST_SPEED = 1.0;
+    private final long    SHORT_PAUSE = 250;
+    private final long     LONG_PAUSE = 3000;
+    @Override
+    public void runOpMode() throws InterruptedException {
+        super.runOpMode();
+        waitForStart();
+
+        pController();
+        telemetry.addData("maxVal = ", robot.maxBrightness);
+        telemetry.addData("minVal = ", robot.minBrightness);
+        telemetry.update();
+
+
+
+        if (!opModeIsActive()){return;}
+        sleep(SHORT_PAUSE);
+        }
+
+
+
+    // highest value aprox: 6000
+    // lowest value aprox:700
+
+
+
+    protected void PIDController(){}
+
+
+
+    protected void pController(){
+        calibrateSensor(SLOW_SPEED);
+
+        sleep(1000);
+//        double KpValue = (1.0/((robot.maxBrightness - robot.minBrightness)/2.0))*0.2;
+        double KcValue = 0.0001;
+        double KpValue = 0.6 * KcValue;
+        double Pc = 0.3043478260869565;
+
+
+        double target = (robot.maxBrightness + robot.minBrightness) /2.0;
+        robot.startMove(SLOW_SPEED, 0,0);
+
+        System.out.println("README: maxBrightness = " + robot.maxBrightness);
+        System.out.println("README: minBrightness = " + robot.minBrightness);
+        System.out.println("README: KpValue = " + KpValue);
+        System.out.println("README: target = " + target);
+
+
+        ElapsedTime timer = new ElapsedTime();
+        timer.reset();
+
+        while (opModeIsActive()){
+            System.out.println("KPControl: " + timer.milliseconds() + "," + robot.colorSensor.alpha());
+
+
+            double error = target - robot.colorSensor.alpha();
+            double corrected_power = KpValue *error;
+
+            System.out.println("README: error = " + error);
+            System.out.println("README: corrected_power = " + corrected_power);
+
+            robot.startMove(SLOW_SPEED, 0, corrected_power);
+        }
+
+
+
+
+    }
+
+    protected void calibrateSensor(double power){
+            double[]  CALIBRATION_ANGLE_SEQ = {45,-90,45};
+            for(double degrees : CALIBRATION_ANGLE_SEQ) {
+                robot.imu.resetYaw();
+                if (degrees > 0) {
+                    power = power * -1;
+
+                }
+                else{power = Math.abs(power);}
+                System.out.println("degrees = " + degrees);
+
+                int maxVal = Integer.MIN_VALUE;
+
+                int minVal = Integer.MAX_VALUE;
+
+                robot.startMove(0, 0, power);
+                while (opModeIsActive() && Math.abs(robot.getHeading()) < (Math.abs(degrees) - robot.ANGLE_OVERSHOOT)) { //Activate robot
+                    if (robot.colorSensor.alpha() > maxVal) {
+                        maxVal = robot.colorSensor.alpha();
+                    }
+
+                    if (robot.colorSensor.alpha() < minVal) {
+                        minVal = robot.colorSensor.alpha();
+                    }
+                }
+                robot.startMove(0, 0, 0);
+
+                robot.minBrightness = minVal;
+                robot.maxBrightness = maxVal;
+            }
+    }
+}
