@@ -31,98 +31,10 @@ public class Parking extends AutoCommon{
     }
 
 
-
-
-    public boolean measureDist2(double startingSpaceFromWall){
-        double buffer = 15;
-        robot.startMove(SLOW_SPEED,0,0);
-        // while I don't have enough space
-        while(opModeIsActive()  && robot.distanceSensor.getDistance(DistanceUnit.CM) < LEN_ROBOT + buffer){
-            //            telemetry.addData("Currently seeing wall");
-        }
-        robot.startMove(0,0,0);
-        sleep(1000);
-
-        robot.startMove(SLOW_SPEED,0,0);
-
-        int trackDistTicks=robot.motorLeft.getCurrentPosition();
-        //when we start seeing the wall
-        while(opModeIsActive() && robot.distanceSensor.getDistance(DistanceUnit.CM) > startingSpaceFromWall+buffer){
-
-        }
-        robot.startMove(0,0,0);
-        sleep(1000);
-
-        trackDistTicks = robot.motorLeft.getCurrentPosition() - trackDistTicks;
-        double cmDist = robot.convertTicksToDist(trackDistTicks);
-        return cmDist >= LEN_ROBOT-10;
-
-
-    }
-
-
-    public void lookForParking(){
-        driveToCalibrateLightSensor(SLOW_SPEED);
-        sleep(1000);
-
-        double avg = (robot.minBrightness + robot.maxBrightness)/2.0;
-        double buffer = avg * 0.3;
-
-        // look for a white line
-        robot.startMove(SLOW_SPEED, 0, 0);
-        while (opModeIsActive() && robot.colorSensor.alpha() < buffer+avg) {
-
-        }
-
-        robot.startMove(0,0,0);
-        sleep(1000);
-
-
-
-        turnIMU(90, SLOW_SPEED);
-        sleep(1000);
-        robot.startMove(0,SLOW_SPEED,0);
-        while(opModeIsActive() && robot.distanceSensor.getDistance(DistanceUnit.CM) > 15){
-
-        }
-
-        robot.startMove(0,0,0);
-        sleep(1000);
-        robot.resetDriveEncoders();
-
-
-        boolean isEnoughSpace = measureDist2(robot.distanceSensor.getDistance(DistanceUnit.CM));
-
-        robot.resetDriveEncoders();
-        if (isEnoughSpace){
-
-            double currentDistTicks = robot.motorLeft.getCurrentPosition();
-            robot.startMove(-SLOW_SPEED,0,0);
-
-            double ticksOfLength = robot.convertDistToTicks(LEN_ROBOT - 25);
-
-            while(opModeIsActive() && ticksOfLength > Math.abs(currentDistTicks - robot.motorLeft.getCurrentPosition())){
-
-            }
-
-            robot.startMove(0,0,0);
-            robot.startMove(0,SLOW_SPEED,0);
-            while(opModeIsActive() && robot.distanceSensor.getDistance(DistanceUnit.CM) > 15){}
-        }
-        else{
-            robot.startMove(SLOW_SPEED,0,0);
-            while (opModeIsActive() && robot.colorSensor.alpha() < buffer+avg){}
-        }
-
-        robot.startMove(0, 0, 0);
-
-
-    }
-
-
-
     public int parkingSpaceEnd =0;
+    public int smallestOpenSpace = Integer.MAX_VALUE;
     public boolean measureDist(double startingSpaceFromWall, double avg, double buffer){
+        // times this shit didn't work for reasons that would require God as a witness: 15
         robot.startMove(0,0,0);
         sleep(1000);
 
@@ -150,10 +62,19 @@ public class Parking extends AutoCommon{
 
         trackDistTicks = robot.motorLeft.getCurrentPosition() - trackDistTicks;
         double cmDist = robot.convertTicksToDist(trackDistTicks);
+        // call me Bob the builder because I gotta fix this
+        if(cmDist >= LEN_ROBOT-20){
+            // update: I can't fix this and it's 1 in the god dam morning I am going to bed
+            int openSpaceSize = robot.motorLeft.getCurrentPosition() - startSpace;
+            if (openSpaceSize < smallestOpenSpace){
+                // F U past me it's now 2:30 am and I fixed it
+                parkingSpaceEnd = robot.motorLeft.getCurrentPosition();
+                smallestOpenSpace = openSpaceSize;
+                System.out.println("openSpaceSize = " + openSpaceSize);
+                return true;
+            }
 
-        if(cmDist >= LEN_ROBOT-10){
-            parkingSpaceEnd = robot.motorLeft.getCurrentPosition();
-            return true;
+            else{return false;}
         }
         else{
             return false;
@@ -173,12 +94,14 @@ public class Parking extends AutoCommon{
 
         double wallDist = robot.distanceSensor.getDistance(DistanceUnit.CM);
         boolean isEnoughSpace = false;
+        // This while loop is about as stable as the Joker with down syndrome so run again if it fails it's a little special
 
         while(opModeIsActive() && (robot.colorSensor.alpha() < buffer+avg)){
             robot.startMove(SLOW_SPEED,0,0);
+            isEnoughSpace = measureDist(wallDist, avg, buffer);
             if (!isEnoughSpace){
                 isEnoughSpace = measureDist(wallDist, avg, buffer);
-                System.out.println("Valid Park detected: " + isEnoughSpace);
+
             }
         }
         // assume that you are at the line
@@ -192,7 +115,10 @@ public class Parking extends AutoCommon{
 
             robot.startMove(0,0,0);
             sleep(1000);
+            //If the bipolar, down syndrome, Joker of a robot ever gets to this line of code I would like to retract calling this robot a:
+            // "bipolar, down syndrome, Joker of a robot"
             park();
+            // update: god damit
         }
         else{
             robot.startMove(SLOW_SPEED, 0, 0);
@@ -212,7 +138,7 @@ public class Parking extends AutoCommon{
     public void park(){
         double currentDistTicks = robot.motorLeft.getCurrentPosition();
         robot.startMove(-SLOW_SPEED,0,0);
-        double ticksOfLength = robot.convertDistToTicks(LEN_ROBOT - 30);
+        double ticksOfLength = robot.convertDistToTicks(LEN_ROBOT - 35);
 
         while(opModeIsActive() && ticksOfLength > Math.abs(currentDistTicks - robot.motorLeft.getCurrentPosition())){}
 
