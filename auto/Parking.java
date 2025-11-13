@@ -84,11 +84,28 @@ public class Parking extends AutoCommon{
     }
 
 
+    public void returnToBase(int turnTickLoc){
+        robot.startMove(-SLOW_SPEED,0,0);
+        //return back to where it turned
+        while(opModeIsActive() && Math.abs(robot.motorLeft.getCurrentPosition())-20 > turnTickLoc ){}
+
+        sleep(1000);
+
+        turnIMU(-99,SLOW_SPEED);
+        sleep(1000);
+
+        robot.startMove(-SLOW_SPEED,0,0);
+
+        while (opModeIsActive() && (Math.abs(robot.motorLeft.getCurrentPosition()) < distFromBase + 500)){}
+        robot.startMove(0,0,0);
+
+    }
+    public int distFromBase;
     public void ParkPlace(){
         setUpPark();
         double avg = (robot.minBrightness + robot.maxBrightness)/2.0;
         double buffer = avg * 0.3;
-
+        int turnTickLoc = robot.motorLeft.getCurrentPosition();
 
 
 
@@ -121,7 +138,7 @@ public class Parking extends AutoCommon{
             // update: god damit
         }
         else{
-            robot.startMove(SLOW_SPEED, 0, 0);
+            returnToBase(turnTickLoc);
         }
 
 
@@ -171,6 +188,7 @@ public class Parking extends AutoCommon{
         }
         robot.startMove(0,0,0);
         sleep(1000);
+        distFromBase = robot.motorLeft.getCurrentPosition();
         robot.resetDriveEncoders();
     }
 
